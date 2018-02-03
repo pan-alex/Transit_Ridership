@@ -1,0 +1,147 @@
+---
+title: "Ridership Across North American Transit Systems"
+author: "Alex Pan"
+date: "February 2, 2018"
+output:
+  html_document:
+    theme: readable
+    toc: yes
+  pdf_document:
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, comments = NA, message = FALSE)
+# setwd('R/Transit_Ridership')
+```
+
+
+# Transit Ridership
+
+## Set up
+```{r, results = 'hide'}
+library(tidyverse)
+library(lubridate)
+library(ggplot2)
+theme_set(theme_bw())
+```
+
+
+## Ridership by Region {.tabset}
+
+
+### Edmonton
+
+From https://dashboard.edmonton.ca/Dashboard/Transit-Ridership/q4c4-5fu4 (updated January 9, 2018)
+
+This file contains the annual total transit system ridership based on the last 12 months of fare revenue.
+```{r}
+edmonton <- read.csv('Data/edmonton_ridership.csv')
+```
+
+```{r}
+head(edmonton)
+```
+
+`DateTime` is being read as a factor, which will have to be converted to dates
+
+`Change_.` is also being read as a factor, but I'm not immediately interested in that variable.
+```{r}
+# In addition to converting `DateTime` into a date object, I'm also going to pull the month from that date object into a new column.
+
+edmonton <- edmonton %>% mutate(DateTime = mdy_hms(as.character(DateTime)),
+                                Month = month(DateTime))
+
+```
+
+
+
+
+#### Some plots exploring the data:
+
+Ridership over the years
+
+```{r}
+edmonton_by_year <- edmonton %>% group_by(YEAR) %>% summarize(mean = mean(MONTH_RIDERSHIP), sd = sd(MONTH_RIDERSHIP))
+
+edmonton_by_year
+```
+
+
+```{r}
+ggplot(edmonton_by_year) + 
+    aes(x = YEAR, y = mean) + 
+    geom_col(fill = 'orange', alpha = 0.5) +
+    geom_point() +
+    geom_line(alpha = 0.6, size = 1) +
+    geom_errorbar(aes(ymin = mean - sd,
+                      ymax = mean + sd),
+                  width = 0.2, alpha = 0.3) +
+    ylab('Mean Monthly Ridership') +
+    scale_x_continuous(breaks = seq(2005, 2017))
+
+    
+```
+
+
+
+A simple ridership vs. time scatterplot
+
+```{r}
+ggplot(edmonton) +
+    aes(x = DateTime, y = MONTH_RIDERSHIP) +
+    geom_point(alpha = 0.6) +
+    ylab('Monthly Ridership')
+```
+
+This is an interesting plot. There seem to be three distinct 'trends.' 
+
+***
+
+
+One way to plot this is to split the data by month
+```{r}
+ggplot(edmonton) +
+    aes(x = DateTime, y = MONTH_RIDERSHIP, col = month.abb[Month]) +
+    geom_point(alpha = 0.6) +
+    geom_line(aes(group = month.abb[Month]), alpha = 0.6) +
+    ylab('Monthly Ridership')
+```
+
+
+
+```{r}
+summer_months <- as.factor(ifelse(!(edmonton$Month %in% seq(5,8)), 'Other', month.abb[edmonton$Month]))
+```
+
+```{r}
+palette <- c('red', 'blue', 'green', 'purple', 'grey')
+
+ggplot(edmonton) +
+    aes(x = DateTime, y = MONTH_RIDERSHIP) +
+    geom_line(aes(group = Month, col = summer_months), alpha = 0.6) +
+    scale_colour_manual('Months', values = palette) +
+    geom_point(aes(col = summer_months), alpha = 0.5) +
+    # scale_color_gradientn(colours = rainbow(12)) +
+    ylab('Monthly Ridership')
+```
+
+We can see in the image below that the summer months have much lower transit usage that the oher months. Blame the university students?
+
+***
+
+How big is this difference?
+```{r}
+temp <- edmonton %>% 
+    group_by(summer = ifelse(Month %in% seq(5,8), 'summer', 'other')) %>%
+    summarize(mean = mean(MONTH_RIDERSHIP))
+
+print(temp)
+```
+
+
+```{r}
+temp$mean[1] - temp$mean[2]
+```
+
+On average, summer months have 1,961,847 fewer rides monthly than other times of the year.
