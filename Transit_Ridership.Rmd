@@ -1,15 +1,19 @@
 ---
-title: "Ridership Across North American Transit Systems"
+title: "Ridership Trends Across North American Transit Systems"
 author: "Alex Pan"
 date: "February 2, 2018"
 output:
-  pdf_document:
-    toc: yes
   html_document:
     fig_height: 3.5
     fig_width: 5
     theme: readable
     toc: yes
+    toc_depth: 4
+  pdf_document:
+    fig_height: 3.5
+    fig_width: 5
+    toc: yes
+    toc_depth: 4
 ---
 
 ```{r setup, include=FALSE}
@@ -44,7 +48,7 @@ edmonton <- read_csv('Data/edmonton_ridership.csv')
 ```
 
 ```{r}
-head(edmonton, 3)
+head(edmonton)
 ```
 
 `DateTime` is being read as a factor, which will have to be converted to dates
@@ -179,8 +183,144 @@ On average, summer months have 1,961,847 fewer rides monthly than other times of
 
 ### Chicago
 
+From: https://catalog.data.gov/dataset/cta-ridership-l-station-entries-monthly-day-type-averages-totals-26ba4
+
+These are data for the Chicago 'L' station riderships. This dataset lists monthly station entry averages, by day type (Weekday, Saturday or Sunday/Holiday), as well as monthly totals, beginning in 2001. Note that some stations (such as on the Cermak Branch--now Pink Line) and Skokie did not have Saturday and/or Sunday/holiday service until more recent years, although, in cases where weekday service ran past midnight, late evening fares may appear as part of Saturday tallies.
+
+Unlike the other transit systems, this data set only includes data from train stations (and not buses)
 
 
+#### Data Manipulation
+
+```{r}
+chicago <- read_csv('Data/chicago_ridership.csv')
+```
+
+```{r}
+head(chicago)
+```
+
+Transform the dates to a usable format
+```{r}
+chicago <- chicago %>% 
+    separate(month_beginning, into = c('Month', 'Day', 'Year'),
+             sep = '/', remove = F, convert = T)
+
+head(chicago)
+```
+
+
+I noticed in some initial plots is that a handful of Stations had an average of 0 daily riders for that month. An example is below (note I've only included 10,000 rows in the plot below).
+
+```{r}
+
+# Only show 10,000 rows to prevent overplotting
+ggplot(chicago[1:10000, ]) +
+    aes(x = month_beginning, y = avg_weekday_rides) +
+    geom_point(alpha = 0.1)
+```
+
+```{r}
+# How many cases are there of 0 monthly weekday rides?
+length(chicago[chicago$avg_weekday_rides == 0, ]$avg_weekday_rides)
+# length(chicago[chicago$avg_saturday_rides == 0, ]$avg_saturday_rides)
+# length(chicago[chicago$`avg_sunday-holiday_rides` == 0, ]$`avg_sunday-holiday_rides` )
+```
+
+
+I'm going to assume that 0 daily riders in a month means that the station was closed or the data were missing, so I'm going to change these values to NA so that they better reflect a typical day
+```{r}
+chicago[chicago$avg_weekday_rides == 0, ]$avg_weekday_rides <- NA
+# chicago[chicago$avg_saturday_rides == 0, ]$avg_saturday_rides <- NA
+# chicago[chicago$`avg_sunday-holiday_rides` == 0, ]$`avg_sunday-holiday_rides` <- NA
+```
+
+
+
+Unlike the other data sets, these data are supplied for every single station. To make it more similar, we'll have to combine data from all stations for each month.
+
+```{r}
+chicago_by_month <- chicago %>% group_by(Year, Month) %>%
+    summarize(avg_weekday_rides = sum(avg_weekday_rides, na.rm = T),
+              avg_saturday_rides = sum(avg_saturday_rides, na.rm = T),
+              avg_sunday_holiday_rides = sum(`avg_sunday-holiday_rides`, na.rm = T)) %>%
+    mutate(DateTime = Year + Month/12)
+
+head(chicago_by_month)
+```
+
+
+#### Exploratory Plots (monthly ridership)
+
+```{r}
+ggplot(chicago_by_month) +
+    geom_point(aes(x = DateTime, y = avg_weekday_rides)) +
+    ylab('Monthly Weekday Ridership')
+```
+
+Chicago's transit looks to be getting busier over time.
+
+
+***
+
+
+Once again, we'll look at the monthly trends
+```{r}
+ggplot(chicago_by_month) +
+    aes(x = DateTime, y = avg_weekday_rides, col = month.abb[Month]) +
+    geom_point(alpha = 0.6) +
+    geom_line(aes(group = month.abb[Month]), alpha = 0.6) +
+    ylab('Mean Weekday Ridership')
+```
+
+Nothing super interesting going on here.
+
+***
+
+#### Daily Ridership
+
+Since we have the luxury of data from every station for every day, let's look at the popularity of each station:
+```{r}
+chicago_by_station <- chicago %>% group_by(stationame) %>%
+    summarize(avg_weekday_rides = mean(avg_weekday_rides),
+              avg_saturday_rides = mean(avg_saturday_rides),
+              avg_sunday_holiday_rides = mean(`avg_sunday-holiday_rides`))
+```
+
+
+Busiest stations during the week):
+```{r}
+# Ten busiest stations
+chicago_by_station <- chicago_by_station %>% arrange(desc(avg_weekday_rides))
+
+head(chicago_by_station, 10)
+```
+
+Plot the 25 busiest stations
+```{r}
+busiest_stations <- chicago_by_station[1:25, ]$stationame
+
+temp <- filter(chicago, stationame %in% busiest_stations)
+temp$stationame <- factor(temp$stationame,
+    levels = busiest_stations, ordered = TRUE)
+
+ggplot(temp) +
+    aes(x = stationame, y = avg_weekday_rides) +
+    geom_point(alpha = 0.05, position = position_jitter(width = 0.2)) +
+    geom_boxplot(alpha = 0.1, size = 0.75) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    ylab('Mean Weekday Rides') + xlab('')
+```
+
+***
+
+Busiest stations on saturdays:
+```{r}
+# Ten busiest stations
+head(chicago_by_station %>% arrange(desc(avg_saturday_rides)), 10)
+```
+
+(I don't care enough about busiest Saturdays to plot them)
 
 
 <a href="#top">Back to top</a>
@@ -206,7 +346,7 @@ Also note that these data are <i>daily</i> ridership numbers, whereas Edmonton's
 
 ***
 
-#### Data Exploration
+#### Data Manipulation
 
 ```{r}
 json_maryland <- fromJSON('Data/maryland_ridership.json', flatten = TRUE)
@@ -248,7 +388,7 @@ maryland <- maryland %>%
 ```
 
 
-Investigate the missingness:
+Missingness Plot
 
 ```{r,fig.height=4}
 # Plot each NA as a bar, sorted by date.
@@ -268,10 +408,9 @@ x <- reshape2::melt(x)
 
 ggplot(x, aes(x = Var2, y = Var1, fill = value)) + 
     geom_tile() +
-    scale_fill_brewer() +
+    scale_fill_brewer('Missing') +
     ylab('Year') + xlab('') +
-    theme(legend.position = "none", 
-          axis.text.x = element_text(angle=45, hjust = 1))
+    theme(axis.text.x = element_text(angle=45, hjust = 1))
 ```
 
 We see that we don't have data on the MARC until ~2007, and we don't have data on the Commuter Bus or Intracounty Commuter Bus (ICC) until 2011. These will bias the `total_average_weekday_ridership` variable, so we should probably calculate totals ourselves when making comparisons across years.
@@ -280,7 +419,7 @@ We can also see that our data do not extend to the end of 2017.
 ```{r}
 max(maryland$DateTime, na.rm = T)
 ```
-They only extend until June
+They only extend until June.
 
 ***
 
@@ -349,7 +488,7 @@ Let's just look at ridership over time for the urban transit system
 ggplot(maryland) +
     aes(x = DateTime, y = maryland$ridership_intracity) +
     geom_point(alpha = 0.6) +
-    ylab('Monthly Ridership')
+    ylab('Mean Weekday Ridership')
 ```
 
 
@@ -363,7 +502,7 @@ ggplot(maryland) +
     aes(x = DateTime, y = ridership_intracity, col = month.abb[Month]) +
     geom_point(alpha = 0.6) +
     geom_line(aes(group = month.abb[Month]), alpha = 0.6) +
-    ylab('Monthly Ridership')
+    ylab('Mean Weekday Ridership')
 ```
 
 The dip in February 2010 is interesting. A quick internet search reveals that there was a bad blizzard in February 2010 that covered the roads with 2 feet of snow.
