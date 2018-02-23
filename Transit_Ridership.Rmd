@@ -3,15 +3,15 @@ title: "Ridership Trends Across North American Transit Systems"
 author: "Alex Pan"
 date: "February 2, 2018"
 output:
+  pdf_document:
+    fig_height: 3.5
+    fig_width: 5
+    toc: yes
+    toc_depth: 4
   html_document:
     fig_height: 3.5
     fig_width: 5
     theme: readable
-    toc: yes
-    toc_depth: 4
-  pdf_document:
-    fig_height: 3.5
-    fig_width: 5
     toc: yes
     toc_depth: 4
 ---
@@ -315,7 +315,7 @@ head(chicago_by_station, 10)
 ```
 
 Plot the 25 busiest stations
-```{r}
+```{r, fig.height=5, fig.width=9}
 busiest_stations <- chicago_by_station[1:25, ]$stationame
 
 temp <- filter(chicago, stationame %in% busiest_stations)
@@ -324,8 +324,8 @@ temp$stationame <- factor(temp$stationame,
 
 ggplot(temp) +
     aes(x = stationame, y = avg_weekday_rides) +
-    geom_point(alpha = 0.05, position = position_jitter(width = 0.2)) +
-    geom_boxplot(alpha = 0.1, size = 0.75) +
+    geom_violin(alpha = 0.5, width = 1.75, fill = 'orange') +
+    geom_boxplot(alpha = .5, width = 0.15, fill = 'grey') +
     theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
     ylab('Mean Weekday Rides') + xlab('')
 ```
@@ -340,7 +340,7 @@ chicago_by_station <- chicago_by_station %>% arrange(desc(avg_saturday_rides))
 head(chicago_by_station, 10)
 ```
 
-```{r}
+```{r, fig.height=5, fig.width=9}
 busiest_saturday_stations <- chicago_by_station[1:25, ]$stationame
 
 temp <- filter(chicago, stationame %in% busiest_saturday_stations)
@@ -349,8 +349,8 @@ temp$stationame <- factor(temp$stationame,
 
 ggplot(temp) +
     aes(x = stationame, y = avg_saturday_rides) +
-    geom_point(alpha = 0.05, position = position_jitter(width = 0.2)) +
-    geom_boxplot(alpha = 0.1, size = 0.75) +
+    geom_violin(alpha = 0.5, width = 1.5, fill = 'orange') +
+    geom_boxplot(alpha = .5, width = 0.15, fill = 'grey') +
     theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
     ylab('Mean Saturday Rides') + xlab('')
 ```
@@ -552,14 +552,6 @@ plot_animation <- gganimate(p1, interval = 1, 'maryland_by_year.gif')
 ![](maryland_by_year.gif)
 
 There's a dip in the summer, but you really can't tell what's going on.
-
-```{r}
-maryland_by_month <- maryland %>% group_by(Month) %>% 
-    summarize(mean = mean(total_average_weekday_ridership),
-              sd = sd(total_average_weekday_ridership),
-              mean_intracity = mean(ridership_intracity),
-              sd_intracity = sd(ridership_intracity))
-```
 
 
 <a href="#top">Back to top</a>

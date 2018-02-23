@@ -27,7 +27,7 @@ There is nothing mind blowing in the analysis. It provides an example of a workf
 
 This is an interesting plot. There is clear growth in the transit system over time, and also a very strong seasonality. If we split the plot by month, we can see which months in particular are driving this:
 
-<img src="edmonton1.png"/>
+<img src="edmonton1.png" width="480" height = "336"/>
 
 We can display this seasonal trend by plotting each year separately
 
@@ -36,7 +36,7 @@ We can display this seasonal trend by plotting each year separately
 
 ## Chicago
 
-<img src="chicago1.png"/>
+<img src="chicago1.png" width="480" height = "336"/>
 
 Chicago also looks like it has some seasonal effect.
 
@@ -46,7 +46,7 @@ Interestingly though, it appears to have a different pattern of seasonality as E
 
 The data provided by the CTA include information on each station, so we can look at the busiest light rail stations, and how much traffic they get:
 
-<img src="chicago2.png"/>
+<img src="chicago2.png" width="864" height = "480"/>
 
 
 ## Maryland
@@ -65,9 +65,9 @@ The data are given as the average weekday ridership across each medium of transi
 
 However, if we look at the missingness in the data, we see that don’t have data on the MARC until ~2007, and we don’t have data on the Commuter Bus or Intracounty Commuter Bus (ICC) until 2011.
 
-<img src="maryland1.png"/>
+<img src="maryland1.png" width="480" height = "336"/>
 
-<img src="maryland2.png"/>
+<img src="maryland2.png" width="480" height = "336"/>
 
 Unlike the Edmonton transit system, the trend suggests that the transit system is being used less over time (I've only looked at intracity transit, but this happens to be trend even if you include the MARC, commuter bus, and intracounty commuter bus). There look to be differences between months, but you can't make out very easily what the trend is.
 
