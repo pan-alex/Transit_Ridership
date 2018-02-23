@@ -27,7 +27,7 @@ There is nothing mind blowing in the analysis. It provides an example of a workf
 
 This is an interesting plot. There is clear growth in the transit system over time, and also a very strong seasonality. If we split the plot by month, we can see which months in particular are driving this:
 
-<img src="edmonton1.png" width="480" height = "336"/>
+<img src="edmonton1.png" width="768" height = "288"/>
 
 We can display this seasonal trend by plotting each year separately
 
@@ -65,7 +65,7 @@ The data are given as the average weekday ridership across each medium of transi
 
 However, if we look at the missingness in the data, we see that don’t have data on the MARC until ~2007, and we don’t have data on the Commuter Bus or Intracounty Commuter Bus (ICC) until 2011.
 
-<img src="maryland1.png" width="480" height = "336"/>
+<img src="maryland1.png" width="480" height = "384"/>
 
 <img src="maryland2.png" width="480" height = "336"/>
 
