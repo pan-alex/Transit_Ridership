@@ -18,7 +18,6 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, comments = NA, message = FALSE)
-# setwd('R/Transit_Ridership')
 ```
 
 
@@ -30,6 +29,7 @@ library(tidyverse)
 library(jsonlite)
 library(lubridate)
 library(ggplot2)
+library(gganimate)
 theme_set(theme_bw())
 ```
 
@@ -104,12 +104,11 @@ A simple ridership vs. time scatterplot
 ```{r}
 ggplot(edmonton) +
     aes(x = DateTime, y = MONTH_RIDERSHIP) +
-    geom_point(alpha = 0.6) +
+    geom_line() +
     ylab('Monthly Ridership')
 ```
 
-This is an interesting plot. There seem to be three distinct 'groups'
-
+This is an interesting plot that suggests a very strong seasonality.
 
 ***
 
@@ -145,17 +144,22 @@ gridExtra::grid.arrange(p1, p2, ncol = 2)
 
 Here is another way to look at this:
 ```{r}
-ggplot(edmonton) +
-    geom_line(aes(x = Month, y = MONTH_RIDERSHIP, group = Year, col = Year),
+p1 <- ggplot(edmonton) +
+    geom_line(aes(x = Month, y = MONTH_RIDERSHIP / 1000000, group = Year, col = Year,
+                  cumulative = TRUE, frame = Year),
               alpha = 0.6) +
-    geom_point(aes(x = Month, y = MONTH_RIDERSHIP, group = Year, col = Year), 
+    geom_point(aes(x = Month, y = MONTH_RIDERSHIP / 1000000, group = Year, col = Year,
+                   cumulative = TRUE, frame = Year), 
                alpha = 0.6) +
     scale_x_continuous(breaks = seq(1, 12)) +
-    ylab('Monthly Ridership') +
-    ylim(c(0, 8500000))
-    
+    ylab('Monthly Ridership (millions)') +
+    ggtitle('Edmonton Transit Service Monthly Ridership')
 
+plot_animation <- gganimate(p1, interval = 1, 'edmonton_by_year.gif')
 ```
+
+![](edmonton_by_year.gif)
+
 
 
 We can see that the summer months have much lower transit usage that the oher months. This shoots way back up in September. Blame the university students?
@@ -250,11 +254,11 @@ head(chicago_by_month)
 ```
 
 
-#### Exploratory Plots (monthly ridership)
+#### Plots (Monthly ridership)
 
 ```{r}
 ggplot(chicago_by_month) +
-    geom_point(aes(x = DateTime, y = avg_weekday_rides)) +
+    geom_line(aes(x = DateTime, y = avg_weekday_rides)) +
     ylab('Monthly Weekday Ridership')
 ```
 
@@ -265,19 +269,33 @@ Chicago's transit looks to be getting busier over time.
 
 
 Once again, we'll look at the monthly trends
+
 ```{r}
-ggplot(chicago_by_month) +
-    aes(x = DateTime, y = avg_weekday_rides, col = month.abb[Month]) +
-    geom_point(alpha = 0.6) +
-    geom_line(aes(group = month.abb[Month]), alpha = 0.6) +
-    ylab('Mean Weekday Ridership')
+p1 <- ggplot(chicago_by_month) +
+    geom_line(aes(x = Month, y = avg_weekday_rides / 10000, group = Year, col = Year,
+                  cumulative = TRUE, frame = Year),
+              alpha = 0.6) +
+    geom_point(aes(x = Month, y = avg_weekday_rides / 10000, group = Year, col = Year,
+                  cumulative = TRUE, frame = Year),
+              alpha = 0.6) +
+    scale_x_continuous(breaks = seq(1, 12)) +
+    ylab('Mean Weekday Ridership (10,000s)') +
+    ggtitle('Chicago Transit Authority Monthly Ridership')
+
+
+plot_animation <- gganimate(p1, interval = 1, 'chicago_by_year.gif')
+
 ```
 
-Nothing super interesting going on here.
+![](chicago_by_year.gif)
+
+
+Chicago also has some seasonality, but unlike Edmonton, it looks to be less busy in the winter.
+
 
 ***
 
-#### Daily Ridership
+#### Plots (Daily Ridership)
 
 Since we have the luxury of data from every station for every day, let's look at the popularity of each station:
 ```{r}
@@ -317,10 +335,25 @@ ggplot(temp) +
 Busiest stations on saturdays:
 ```{r}
 # Ten busiest stations
-head(chicago_by_station %>% arrange(desc(avg_saturday_rides)), 10)
+chicago_by_station <- chicago_by_station %>% arrange(desc(avg_saturday_rides))
+
+head(chicago_by_station, 10)
 ```
 
-(I don't care enough about busiest Saturdays to plot them)
+```{r}
+busiest_saturday_stations <- chicago_by_station[1:25, ]$stationame
+
+temp <- filter(chicago, stationame %in% busiest_saturday_stations)
+temp$stationame <- factor(temp$stationame,
+    levels = busiest_saturday_stations, ordered = TRUE)
+
+ggplot(temp) +
+    aes(x = stationame, y = avg_saturday_rides) +
+    geom_point(alpha = 0.05, position = position_jitter(width = 0.2)) +
+    geom_boxplot(alpha = 0.1, size = 0.75) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    ylab('Mean Saturday Rides') + xlab('')
+```
 
 
 <a href="#top">Back to top</a>
@@ -487,29 +520,46 @@ Let's just look at ridership over time for the urban transit system
 ```{r}
 ggplot(maryland) +
     aes(x = DateTime, y = maryland$ridership_intracity) +
-    geom_point(alpha = 0.6) +
+    geom_line(alpha = 0.6) +
     ylab('Mean Weekday Ridership')
 ```
 
 
 Unlike the Edmonton transit system, the obvious trend is that the transit system is being used less over time. We also don't see any sort of obvious monthly trends.
 
+The dip in February 2010 is interesting. A quick internet search reveals that there was a bad blizzard in February 2010 that covered the roads with 2 feet of snow.
+
+
 ***
 
 Looking at Monthly trends
 ```{r}
-ggplot(maryland) +
-    aes(x = DateTime, y = ridership_intracity, col = month.abb[Month]) +
-    geom_point(alpha = 0.6) +
-    geom_line(aes(group = month.abb[Month]), alpha = 0.6) +
-    ylab('Mean Weekday Ridership')
+p1 <- ggplot(maryland) +
+    geom_line(aes(x = Month, y = ridership_intracity / 10000, group = Year, col = Year,
+                  cumulative = TRUE, frame = Year),
+              alpha = 0.6) +
+    geom_point(aes(x = Month, y = ridership_intracity / 10000, group = Year, col = Year,
+                   cumulative = TRUE, frame = Year),
+              alpha = 0.6) +
+    scale_x_continuous(breaks = seq(1, 12)) +
+    ylab('Mean Weekday Ridership (10,000s)') +
+    ggtitle('Maryland Transit Administration Monthly Ridership')
+
+plot_animation <- gganimate(p1, interval = 1, 'maryland_by_year.gif')
+
 ```
 
-The dip in February 2010 is interesting. A quick internet search reveals that there was a bad blizzard in February 2010 that covered the roads with 2 feet of snow.
+![](maryland_by_year.gif)
 
-There are no notable seasonal trends. The four least busy months appear to be December, January, July, and August.
+There's a dip in the summer, but you really can't tell what's going on.
 
-June was one of the least busy months for transit ridership, but for what ever reason has become one of the busiest months in recent years.
+```{r}
+maryland_by_month <- maryland %>% group_by(Month) %>% 
+    summarize(mean = mean(total_average_weekday_ridership),
+              sd = sd(total_average_weekday_ridership),
+              mean_intracity = mean(ridership_intracity),
+              sd_intracity = sd(ridership_intracity))
+```
 
 
 <a href="#top">Back to top</a>
