@@ -3,15 +3,16 @@ title: "Ridership Trends Across North American Transit Systems"
 author: "Alex Pan"
 date: "February 2, 2018"
 output:
-  pdf_document:
-    fig_height: 3.5
-    fig_width: 5
-    toc: yes
-    toc_depth: 4
   html_document:
+    keep_md: true
     fig_height: 3.5
     fig_width: 5
     theme: readable
+    toc: yes
+    toc_depth: 4
+  pdf_document:
+    fig_height: 3.5
+    fig_width: 5
     toc: yes
     toc_depth: 4
 ---
