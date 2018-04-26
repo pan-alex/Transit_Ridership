@@ -95,7 +95,7 @@ edmonton <- edmonton %>%
 
 
 
-A simple ridership vs. time scatterplot
+A simple ridership vs. time line graph
 
 
 ```r
@@ -203,6 +203,53 @@ On average, summer months have 1,961,847 fewer rides monthly than other times of
 <a href="#top">Back to top</a>
 
 
+#### Modeling Ridership
+
+If we look at the original Ridership vs. Time graph, we see an increase in transit usage from 2005-2013, which then levels off. But because of the huge amount of seasonal variation, it's a bit tricky to visualize the overall trend.
+
+I'd like to visualize Edmonton's transit ridership without the seasonal variation. This can be done by creating a model of Ridership ~ Month.
+
+
+```r
+library(modelr)
+
+edmonton_model <- lm(MONTH_RIDERSHIP ~ factor(Month), data = edmonton)
+```
+
+
+Here is the variation captured by modeling Ridership ~ month.
+
+```r
+edmonton %>%
+    add_predictions(edmonton_model) %>%
+    ggplot(aes(DateTime, pred)) +
+    geom_line() +
+    ylab('Ridership Predictions by Month')
+```
+
+![](Transit_Ridership_files/figure-html/unnamed-chunk-14-1.png)<!-- -->
+
+
+By plotting the residuals we can get a better sense of how much variation is due to factors *other* than the Month of the year (although it is not perfect since the effect is not constant over time).
+
+One noticeable point is that, not only does Ridership seem to diminish in growth around 2013, it actually appears to decline. This wasn't quite as apparent when looking at a simple Ridership vs. Time graph.
+
+
+```r
+edmonton %>%
+    add_residuals(edmonton_model) %>%
+    ggplot(aes(DateTime, resid)) +
+    geom_hline(yintercept = 0, colour = "white", size = 3) +
+    geom_line() +
+    geom_smooth() +
+    ylab('Residuals')
+```
+
+![](Transit_Ridership_files/figure-html/unnamed-chunk-15-1.png)<!-- -->
+
+
+
+
 ### Chicago
 
 From: https://catalog.data.gov/dataset/cta-ridership-l-station-entries-monthly-day-type-averages-totals-26ba4
@@ -274,7 +321,7 @@ ggplot(chicago[1:10000, ]) +
     geom_point(alpha = 0.1)
 ```
 
-![](Transit_Ridership_files/figure-html/unnamed-chunk-16-1.png)<!-- -->
+![](Transit_Ridership_files/figure-html/unnamed-chunk-19-1.png)<!-- -->
 
 
 ```r
@@ -340,7 +387,7 @@ ggplot(chicago_by_month) +
     ylab('Monthly Weekday Ridership')
 ```
 
-![](Transit_Ridership_files/figure-html/unnamed-chunk-20-1.png)<!-- -->
+![](Transit_Ridership_files/figure-html/unnamed-chunk-23-1.png)<!-- -->
 
 Chicago's transit looks to be getting busier over time.
 
@@ -373,6 +420,23 @@ plot_animation <- gganimate(p1, interval = 1, 'chicago_by_year.gif')
 Chicago also has some seasonality, but unlike Edmonton, it looks to be less busy in the winter.
 
 
+Let's also look at Chicago's Ridership over time after removing the effect of Month.
+
+
+```r
+chicago_by_month_model <- lm(avg_weekday_rides ~ factor(Month), 
+                             data = chicago_by_month)
+
+chicago_by_month %>%
+    add_residuals(chicago_by_month_model) %>%
+    ggplot(aes(DateTime, resid)) +
+    geom_hline(yintercept = 0, colour = "white", size = 3) +
+    geom_line() +
+    geom_smooth() +
+    ylab('Residuals')
+```
+
+![](Transit_Ridership_files/figure-html/unnamed-chunk-25-1.png)<!-- -->
 ***
 
 #### Plots (Daily Ridership)
@@ -430,7 +494,7 @@ ggplot(temp) +
     ylab('Mean Weekday Rides') + xlab('')
 ```
 
-![](Transit_Ridership_files/figure-html/unnamed-chunk-24-1.png)<!-- -->
+![](Transit_Ridership_files/figure-html/unnamed-chunk-28-1.png)<!-- -->
 
 ***
 
@@ -476,7 +540,7 @@ ggplot(temp) +
     ylab('Mean Saturday Rides') + xlab('')
 ```
 
-![](Transit_Ridership_files/figure-html/unnamed-chunk-26-1.png)<!-- -->
+![](Transit_Ridership_files/figure-html/unnamed-chunk-30-1.png)<!-- -->
 
 
 <a href="#top">Back to top</a>
@@ -604,7 +668,7 @@ ggplot(x, aes(x = Var2, y = Var1, fill = value)) +
     theme(axis.text.x = element_text(angle=45, hjust = 1))
 ```
 
-![](Transit_Ridership_files/figure-html/unnamed-chunk-31-1.png)<!-- -->
+![](Transit_Ridership_files/figure-html/unnamed-chunk-35-1.png)<!-- -->
 
 We see that we don't have data on the MARC until ~2007, and we don't have data on the Commuter Bus or Intracounty Commuter Bus (ICC) until 2011. These will bias the `total_average_weekday_ridership` variable, so we should probably calculate totals ourselves when making comparisons across years.
 
@@ -673,7 +737,7 @@ p2 <- ggplot(maryland_by_year) +
 gridExtra::grid.arrange(p1, p2, ncol = 2)
 ```
 
-![](Transit_Ridership_files/figure-html/unnamed-chunk-35-1.png)<!-- -->
+![](Transit_Ridership_files/figure-html/unnamed-chunk-39-1.png)<!-- -->
 
 We can see that the 'jumps' in ridership in 2007/2008 and 2011/2012 mostly disappear when we only look at intracity transit.
 
@@ -693,7 +757,7 @@ ggplot(maryland) +
     ylab('Mean Weekday Ridership')
 ```
 
-![](Transit_Ridership_files/figure-html/unnamed-chunk-36-1.png)<!-- -->
+![](Transit_Ridership_files/figure-html/unnamed-chunk-40-1.png)<!-- -->
 
 
 Unlike the Edmonton transit system, the obvious trend is that the transit system is being used less over time. We also don't see any sort of obvious monthly trends.
@@ -724,5 +788,22 @@ plot_animation <- gganimate(p1, interval = 1, 'maryland_by_year.gif')
 
 There's a dip in the summer, but you really can't tell what's going on.
 
+
+
+
+```r
+maryland_model <- lm(ridership_intracity ~ factor(Month), 
+                             data = maryland)
+
+maryland %>%
+    add_residuals(maryland_model) %>%
+    ggplot(aes(DateTime, resid)) +
+    geom_hline(yintercept = 0, colour = "white", size = 3) +
+    geom_line() +
+    geom_smooth() +
+    ylab('Residuals')
+```
+
+![](Transit_Ridership_files/figure-html/unnamed-chunk-42-1.png)<!-- -->
 
 <a href="#top">Back to top</a>
