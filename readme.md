@@ -24,7 +24,7 @@ output:
 
 ## Pages Link:
 
-https://github.com/pan-alex/Transit_Ridership
+https://pan-alex.github.io/Transit_Ridership/
 
 
 ## Set up
